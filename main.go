@@ -52,8 +52,6 @@ func main() {
 	var repo = "golang_road"
 	var sha = "1fbd0e9ed5ee1239996720d79435b7a2feb5d507"
 
-	var whoiswho = "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"
-
 	cfg := config.MustLoad()
 
 	bot, err := tgbotapi.NewBotAPI(cfg.TgBotToken)
@@ -64,7 +62,7 @@ func main() {
 	bot.Debug = true
 
 	storage := mongo.New(cfg.MongoConnectionString, 10*time.Second)
-	gh_client := ghClient.NewGithubClient(whoiswho, owner, repo, sha)
+	gh_client := ghClient.NewGithubClient("whoiswho", owner, repo, sha)
 	var repository = quest_repo.NewQuestionsRepo(gh_client, storage)
 	var useCase = quest_usecase.NewQuestionsUseCase(repository)
 
