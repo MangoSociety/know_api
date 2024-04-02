@@ -3,11 +3,13 @@ package telegram
 import (
 	"context"
 	"encoding/json"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"io"
 	"net/http"
 	"net/url"
 	"path"
 	"strconv"
+	"strings"
 
 	"read-adviser-bot/lib/e"
 )
@@ -16,18 +18,22 @@ type Client struct {
 	host     string
 	basePath string
 	client   http.Client
+	bot      *tgbotapi.BotAPI
 }
 
 const (
 	getUpdatesMethod  = "getUpdates"
 	sendMessageMethod = "sendMessage"
+
+	formatMessageMd = "MarkdownV2"
 )
 
-func New(host string, token string) *Client {
+func NewTelegramClient(host string, token string, tgBot *tgbotapi.BotAPI) *Client {
 	return &Client{
 		host:     host,
 		basePath: newBasePath(token),
 		client:   http.Client{},
+		bot:      tgBot,
 	}
 }
 
@@ -67,6 +73,44 @@ func (c *Client) SendMessage(ctx context.Context, chatID int, text string) error
 	}
 
 	return nil
+}
+
+func (c *Client) SendMessageMd(ctx context.Context, chatID int, text string) error {
+	q := url.Values{}
+	q.Add("chat_id", strconv.Itoa(chatID))
+	q.Add("text", text)
+	q.Add("parse_mode", "markdown")
+
+	_, err := c.doRequest(ctx, sendMessageMethod, q)
+	if err != nil {
+		return e.Wrap("can't send message", err)
+	}
+
+	return nil
+}
+
+func (c *Client) SendMessageWithSpoilerMd(ctx context.Context, chatID int64, title string, text string) error {
+	result := replacingString(title) + "\n" + "||" + replacingString(text) + "||"
+
+	msg := tgbotapi.NewMessage(chatID, result)
+	msg.ParseMode = formatMessageMd
+
+	// TODO("мб что-то надо вытаскивать из ответа отправки и сохранять для альнейшей модерации ответа")
+	_, err := c.bot.Send(msg)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func replacingString(data string) string {
+	symbols := []string{"_", "*", "[", "]", "(", ")", "~", "`", ">", "#", "+", "-", "=", "|", "{", "}", ".", "!"}
+	var result = data
+	for _, value := range symbols {
+		result = strings.ReplaceAll(result, value, "\\"+value)
+	}
+	return result
 }
 
 func (c *Client) doRequest(ctx context.Context, method string, query url.Values) (data []byte, err error) {

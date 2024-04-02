@@ -14,7 +14,7 @@ type Consumer struct {
 	batchSize int
 }
 
-func New(fetcher events.Fetcher, processor events.Processor, batchSize int) Consumer {
+func NewConsumer(fetcher events.Fetcher, processor events.Processor, batchSize int) Consumer {
 	return Consumer{
 		fetcher:   fetcher,
 		processor: processor,
@@ -45,6 +45,7 @@ func (c Consumer) Start() error {
 	}
 }
 
+// TODO("переписать на WaitGroup")
 func (c *Consumer) handleEvents(ctx context.Context, events []events.Event) error {
 	for _, event := range events {
 		log.Printf("got new event: %s", event.Text)

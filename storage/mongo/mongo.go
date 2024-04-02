@@ -2,7 +2,9 @@ package mongo
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"time"
@@ -17,9 +19,14 @@ import (
 
 type Storage struct {
 	pages Pages
+	notes Notes
 }
 
 type Pages struct {
+	*mongo.Collection
+}
+
+type Notes struct {
 	*mongo.Collection
 }
 
@@ -28,11 +35,20 @@ type Page struct {
 	UserName string `bson:"username"`
 }
 
+type Note struct {
+	Title    string `bson:"title"`
+	Sphere   string `bson:"sphere"`
+	Category string `bson:"category"`
+	Content  string `bson:"content"`
+}
+
 func New(connectString string, connectTimeout time.Duration) Storage {
 	ctx, cancel := context.WithTimeout(context.Background(), connectTimeout)
 	defer cancel()
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connectString))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(connectString).SetTLSConfig(&tls.Config{
+		InsecureSkipVerify: true, // Используйте только для отладки, не для продакшена
+	}))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -45,8 +61,13 @@ func New(connectString string, connectTimeout time.Duration) Storage {
 		Collection: client.Database("read-adviser").Collection("pages"),
 	}
 
+	notes := Notes{
+		Collection: client.Database("read-adviser").Collection("notes"),
+	}
+
 	return Storage{
 		pages: pages,
+		notes: notes,
 	}
 }
 
@@ -60,6 +81,64 @@ func (s Storage) Save(ctx context.Context, page *storage.Page) error {
 	}
 
 	return nil
+}
+
+func (s Storage) SaveNote(ctx context.Context, note *storage.Note) error {
+	_, err := s.notes.InsertOne(ctx, Note{
+		Title:    note.Title,
+		Sphere:   note.Sphere,
+		Category: note.Category,
+		Content:  note.Content,
+	})
+	if err != nil {
+		return e.Wrap("can't save note", err)
+	}
+
+	return nil
+}
+
+func (s Storage) GetNote(ctx context.Context, conditionField string, conditionValue string) (note *storage.Note, err error) {
+	defer func() { err = e.WrapIfErr("can't get note", err) }()
+
+	//var n Note
+
+	// Создаем агрегационный пайплайн с операторами $match и $sample
+	pipeline := mongo.Pipeline{
+		//{{"$match", bson.D{{conditionField, conditionValue}}}},
+		{{"$sample", bson.D{{"size", 1}}}},
+	}
+
+	// Выполняем агрегацию
+	cursor, err := s.notes.Aggregate(context.Background(), pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute aggregation: %w", err)
+	}
+	defer cursor.Close(context.Background())
+
+	// Читаем результат
+	var result bson.M
+	if cursor.Next(context.Background()) {
+		if err := cursor.Decode(&result); err != nil {
+			return nil, fmt.Errorf("failed to decode result: %w", err)
+		}
+	}
+
+	// Преобразование result (bson.M) в структуру Note
+	var noteResult storage.Note
+	if title, ok := result["title"].(string); ok {
+		noteResult.Title = title
+	}
+	if sphere, ok := result["sphere"].(string); ok {
+		noteResult.Sphere = sphere
+	}
+	if category, ok := result["category"].(string); ok {
+		noteResult.Category = category
+	}
+	if content, ok := result["content"].(string); ok {
+		noteResult.Content = content
+	}
+
+	return &noteResult, nil
 }
 
 func (s Storage) PickRandom(ctx context.Context, userName string) (page *storage.Page, err error) {

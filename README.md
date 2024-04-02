@@ -1,5 +1,26 @@
-# Read Adviser Bot
+# Memory Projects
 
-**Read Adviser Bot** - is a bot for Telegram that can save links sent by users and can send you random from them.
+***Цель проекта*** - создать систему, которая поможет запоминать больше айти материала и прокачивать свой скилл в разработке
 
-It can be useful for people who often save many links, but always forget about them.
+# Структура папок
+## clients
+> Описание подключения к различным клиентам
+> > - telegram
+> > - github
+## config
+> Конфигурация приложения, получаем из docker-compose.yml
+> > пока конечно ничего не получаем, но потом точно будем получать
+## consumer
+> Реализация полинга для тг бота
+## deploy
+> Докер файлы для деплоя
+## events
+> Обработка событий из тг бота
+## internal
+> Бизнес логика по чистой архитектуре
+## lib
+> Библиотеки для работы с различными сервисами и утилитарные функции
+## pkg
+> Внутренние пакеты
+## storage
+> Работа с хранилищем и описание ее функционала

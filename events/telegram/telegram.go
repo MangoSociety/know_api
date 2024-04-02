@@ -3,17 +3,19 @@ package telegram
 import (
 	"context"
 	"errors"
+	"read-adviser-bot/internal/question/usecase"
+	"read-adviser-bot/storage"
 
 	"read-adviser-bot/clients/telegram"
 	"read-adviser-bot/events"
 	"read-adviser-bot/lib/e"
-	"read-adviser-bot/storage"
 )
 
 type Processor struct {
-	tg      *telegram.Client
-	offset  int
-	storage storage.Storage
+	tg            *telegram.Client
+	offset        int
+	storage       storage.Storage
+	quest_usecase usecase.QuestionsUseCase
 }
 
 type Meta struct {
@@ -26,10 +28,11 @@ var (
 	ErrUnknownMetaType  = errors.New("unknown meta type")
 )
 
-func New(client *telegram.Client, storage storage.Storage) *Processor {
+func NewProcessor(client *telegram.Client, questUseCase usecase.QuestionsUseCase, storage storage.Storage) *Processor {
 	return &Processor{
-		tg:      client,
-		storage: storage,
+		tg:            client,
+		storage:       storage,
+		quest_usecase: questUseCase,
 	}
 }
 
