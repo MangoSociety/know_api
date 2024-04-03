@@ -1,12 +1,83 @@
 package config
 
+import (
+	"errors"
+	"github.com/spf13/viper"
+	"log"
+	"time"
+)
+
+// App config struct
 type Config struct {
-	TgBotToken            string
-	MongoConnectionString string
+	Server  ServerConfig
+	Redis   RedisConfig
+	MongoDB MongoDB
+	Cookie  Cookie
+	Session Session
+	Metrics Metrics
+	Github  GithubConfig
 }
 
-type GithubData struct {
+// Server config struct
+type ServerConfig struct {
+	AppVersion        string
+	Port              string
+	PprofPort         string
+	Mode              string
+	JwtSecretKey      string
+	CookieName        string
+	ReadTimeout       time.Duration
+	WriteTimeout      time.Duration
+	SSL               bool
+	CtxDefaultTimeout time.Duration
+	CSRF              bool
+	Debug             bool
+}
+
+// Redis config
+type RedisConfig struct {
+	RedisAddr      string
+	RedisPassword  string
+	RedisDB        string
+	RedisDefaultdb string
+	MinIdleConns   int
+	PoolSize       int
+	PoolTimeout    int
+	Password       string
+	DB             int
+}
+
+type GithubConfig struct {
 	Owner string
+	Repo  string
+	Sha   string
+	Token string
+}
+
+// MongoDB config
+type MongoDB struct {
+	MongoURI string
+}
+
+// Cookie config
+type Cookie struct {
+	Name     string
+	MaxAge   int
+	Secure   bool
+	HTTPOnly bool
+}
+
+// Session config
+type Session struct {
+	Prefix string
+	Name   string
+	Expire int
+}
+
+// Metrics config
+type Metrics struct {
+	URL         string
+	ServiceName string
 }
 
 const (
@@ -18,30 +89,60 @@ const (
 	mongo_connect = "mongodb+srv://forevermenty25:k9zPoWBGI3PQT4Gz@cluster0.p8mq4lx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 )
 
-// TODO("вынести ключи к сервисам в флаги/настройки докера")
-func MustLoad() Config {
-	//tgBotTokenToken := flag.String(
-	//	"tg-bot-token",
-	//	"",
-	//	"token for access to telegram bot",
-	//)
-	//mongoConnectionString := flag.String(
-	//	"mongo-connection-string",
-	//	"",
-	//	"connection string for MongoDB",
-	//)
-	//
-	//flag.Parse()
-	//
-	//if *tgBotTokenToken == "" {
-	//	log.Fatal("token is not specified")
-	//}
-	//if *mongoConnectionString == "" {
-	//	log.Fatal("mongo connection string is not specified")
-	//}
+// Load config file from given path
+func LoadConfig(filename string) (*viper.Viper, error) {
+	v := viper.New()
 
-	return Config{
-		TgBotToken:            tg_token,
-		MongoConnectionString: mongo_connect,
+	v.SetConfigName(filename)
+	v.AddConfigPath(".")
+	v.AutomaticEnv()
+	if err := v.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			return nil, errors.New("config file not found")
+		}
+		return nil, err
 	}
+
+	return v, nil
 }
+
+// Parse config file
+func ParseConfig(v *viper.Viper) (*Config, error) {
+	var c Config
+
+	err := v.Unmarshal(&c)
+	if err != nil {
+		log.Printf("unable to decode into struct, %v", err)
+		return nil, err
+	}
+
+	return &c, nil
+}
+
+// TODO("вынести ключи к сервисам в флаги/настройки докера")
+//func MustLoad() Config {
+//	//tgBotTokenToken := flag.String(
+//	//	"tg-bot-token",
+//	//	"",
+//	//	"token for access to telegram bot",
+//	//)
+//	//mongoConnectionString := flag.String(
+//	//	"mongo-connection-string",
+//	//	"",
+//	//	"connection string for MongoDB",
+//	//)
+//	//
+//	//flag.Parse()
+//	//
+//	//if *tgBotTokenToken == "" {
+//	//	log.Fatal("token is not specified")
+//	//}
+//	//if *mongoConnectionString == "" {
+//	//	log.Fatal("mongo connection string is not specified")
+//	//}
+//
+//	return Config{
+//		TgBotToken:            tg_token,
+//		MongoConnectionString: mongo_connect,
+//	}
+//}

@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"read-adviser-bot/lib/e"
+	e "know_api/pkg/error"
 )
 
 type Storage interface {

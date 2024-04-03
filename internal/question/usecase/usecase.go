@@ -60,18 +60,6 @@ func (q *QuestionsUseCase) GetRandomQuestionAndroidStruct() storage.Note {
 	return random_quest
 }
 
-//func getRandomString(data []string) string {
-//	// Инициализируем генератор случайных чисел
-//	rand.Seed(time.Now().UnixNano())
-//
-//	// Генерируем случайный индекс
-//	randomIndex := rand.Intn(len(data))
-//
-//	var res = data[randomIndex]
-//	// Возвращаем случайную строку
-//	return strings.ReplaceAll(res, "\n", "")
-//}
-
 func getRandomString(numbers []string, count int) []string {
 	// Инициализируем генератор случайных чисел
 	rand.Seed(time.Now().UnixNano())
