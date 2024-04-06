@@ -4,6 +4,7 @@ import (
 	"context"
 	"know_api/internal/instance/telegram/events"
 	"log"
+	"sync"
 	"time"
 )
 
@@ -21,37 +22,43 @@ func NewConsumer(fetcher events.Fetcher, processor events.Processor, batchSize i
 	}
 }
 
-func (c Consumer) Start() error {
+func (c Consumer) Start(ctx context.Context) error {
+	var wg sync.WaitGroup
+
 	for {
-		gotEvents, err := c.fetcher.Fetch(context.Background(), c.batchSize)
-		if err != nil {
-			log.Printf("[ERR] consumer: %s", err.Error())
+		select {
+		case <-ctx.Done():
+			wg.Wait()
+			return ctx.Err()
+		default:
+			gotEvents, err := c.fetcher.Fetch(ctx, c.batchSize)
+			if err != nil {
+				log.Printf("[ERR] consumer: %s", err.Error())
+				continue
+			}
 
-			continue
-		}
+			if len(gotEvents) == 0 {
+				time.Sleep(1 * time.Second)
+				continue
+			}
 
-		if len(gotEvents) == 0 {
-			time.Sleep(1 * time.Second)
-
-			continue
-		}
-
-		if err := c.handleEvents(context.Background(), gotEvents); err != nil {
-			log.Print(err)
-
-			continue
+			wg.Add(1)
+			go func(events []events.Event) {
+				defer wg.Done()
+				if err := c.handleEvents(ctx, events); err != nil {
+					log.Print(err)
+				}
+			}(gotEvents)
 		}
 	}
 }
 
-// TODO("переписать на WaitGroup")
 func (c *Consumer) handleEvents(ctx context.Context, events []events.Event) error {
 	for _, event := range events {
 		log.Printf("got new event: %s", event.Text)
 
 		if err := c.processor.Process(ctx, event); err != nil {
 			log.Printf("can't handle event: %s", err.Error())
-
 			continue
 		}
 	}

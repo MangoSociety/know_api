@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	tg_bot_api "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	tg_client "know_api/clients/telegram"
 	"know_api/config"
@@ -29,7 +30,9 @@ func main() {
 
 	consumer := event_consumer.NewConsumer(eventsProcessor, eventsProcessor, 100) //  NewConsumer(eventsProcessor, eventsProcessor, batchSize)
 
-	if err := consumer.Start(); err != nil {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := consumer.Start(ctx); err != nil {
 		log.Fatal("service is stopped", err)
 	}
 }
