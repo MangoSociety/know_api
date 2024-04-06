@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"io"
+	e "know_api/pkg/error"
 	"net/http"
 	"net/url"
 	"path"
 	"strconv"
 	"strings"
-
-	"read-adviser-bot/lib/e"
 )
 
 type Client struct {

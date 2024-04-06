@@ -1,12 +1,9 @@
 package telegram
 
-const msgHelp = `I can save and keep you pages. Also I can offer you them to read.
+// TODO: fix help description
+const msgHelp = "Привет, дорогой друг, в этом боте ты можешь получить дополнительные материалы по разработке Android приложений. \n А так же, ты можешь настроить интервалы времени, в которые ты хочешь получать уведомления. \n\n"
 
-In order to save the page, just send me al link to it.
-
-In order to get a random page from your list, send me command /rnd.
-Caution! After that, this page will be removed from your list!`
-
+// TODO: fix hello message
 const msgHello = "Hi there! 👾\n\n" + msgHelp
 
 const (

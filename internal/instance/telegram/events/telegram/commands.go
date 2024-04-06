@@ -2,7 +2,6 @@ package telegram
 
 import (
 	"context"
-	"fmt"
 	e "know_api/pkg/error"
 	"log"
 	"strings"
@@ -26,16 +25,16 @@ func (p *Processor) doCmd(ctx context.Context, text string, chatID int, username
 }
 
 func (p *Processor) getRandomQuestionAndroid(ctx context.Context, chatId int) error {
-	data, err := p.storage.GetNote(ctx, "category", "Object")
-	if err != nil {
-		fmt.Println("error" + err.Error())
-		return err
-	}
-	err = p.tg.SendMessageWithSpoilerMd(ctx, int64(chatId), data.Title, data.Content)
-	if err != nil {
-		fmt.Println("error" + err.Error())
-		return err
-	}
+	//data, err := p.storage.GetNote(ctx, "category", "Object")
+	//if err != nil {
+	//	fmt.Println("error" + err.Error())
+	//	return err
+	//}
+	//err = p.tg.SendMessageWithSpoilerMd(ctx, int64(chatId), data.Title, data.Content)
+	//if err != nil {
+	//	fmt.Println("error" + err.Error())
+	//	return err
+	//}
 	return nil
 }
 

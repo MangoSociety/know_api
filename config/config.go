@@ -8,14 +8,20 @@ import (
 )
 
 // App config struct
+//type Config struct {
+//	Server  ServerConfig
+//	Redis   RedisConfig
+//	MongoDB MongoDB
+//	Cookie  Cookie
+//	Session Session
+//	Metrics Metrics
+//	Github  GithubConfig
+//}
+
 type Config struct {
-	Server  ServerConfig
-	Redis   RedisConfig
-	MongoDB MongoDB
-	Cookie  Cookie
-	Session Session
-	Metrics Metrics
-	Github  GithubConfig
+	Github       GithubConfig
+	TgToken      string
+	MongoConnect string
 }
 
 // Server config struct
@@ -120,29 +126,35 @@ func ParseConfig(v *viper.Viper) (*Config, error) {
 }
 
 // TODO("вынести ключи к сервисам в флаги/настройки докера")
-//func MustLoad() Config {
-//	//tgBotTokenToken := flag.String(
-//	//	"tg-bot-token",
-//	//	"",
-//	//	"token for access to telegram bot",
-//	//)
-//	//mongoConnectionString := flag.String(
-//	//	"mongo-connection-string",
-//	//	"",
-//	//	"connection string for MongoDB",
-//	//)
-//	//
-//	//flag.Parse()
-//	//
-//	//if *tgBotTokenToken == "" {
-//	//	log.Fatal("token is not specified")
-//	//}
-//	//if *mongoConnectionString == "" {
-//	//	log.Fatal("mongo connection string is not specified")
-//	//}
-//
-//	return Config{
-//		TgBotToken:            tg_token,
-//		MongoConnectionString: mongo_connect,
-//	}
-//}
+func MustLoad() Config {
+	//tgBotTokenToken := flag.String(
+	//	"tg-bot-token",
+	//	"",
+	//	"token for access to telegram bot",
+	//)
+	//mongoConnectionString := flag.String(
+	//	"mongo-connection-string",
+	//	"",
+	//	"connection string for MongoDB",
+	//)
+	//
+	//flag.Parse()
+	//
+	//if *tgBotTokenToken == "" {
+	//	log.Fatal("token is not specified")
+	//}
+	//if *mongoConnectionString == "" {
+	//	log.Fatal("mongo connection string is not specified")
+	//}
+
+	return Config{
+		Github: GithubConfig{
+			Owner: gh_owner,
+			Repo:  gh_repo,
+			Sha:   gh_sha,
+			Token: gh_token,
+		},
+		TgToken:      tg_token,
+		MongoConnect: mongo_connect,
+	}
+}
