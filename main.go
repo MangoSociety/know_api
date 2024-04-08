@@ -11,7 +11,7 @@ import (
 	"read-adviser-bot/config"
 	event_consumer "read-adviser-bot/consumer/event-consumer"
 	"read-adviser-bot/events/telegram"
-	quest_repo "read-adviser-bot/internal/question/repository"
+	quest_repo "read-adviser-bot/internal/question/repos"
 	quest_usecase "read-adviser-bot/internal/question/usecase"
 	"read-adviser-bot/storage/mongo"
 	"regexp"
@@ -68,7 +68,7 @@ func main() {
 	var repository = quest_repo.NewQuestionsRepo(gh_client, storage)
 	var useCase = quest_usecase.NewQuestionsUseCase(repository)
 
-	//repository.GetFileTree(context.Background(), "android/interview_questions/")
+	//repos.GetFileTree(context.Background(), "android/interview_questions/")
 
 	log.Println("storage created", storage)
 

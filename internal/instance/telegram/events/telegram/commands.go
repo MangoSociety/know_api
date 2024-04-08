@@ -52,7 +52,7 @@ func (p *Processor) savePage(ctx context.Context, chatID int, pageURL string, us
 }
 
 func (p *Processor) saveNote(ctx context.Context, chatId int) error {
-	//text := p.quest_usecase.GetRandomQuestionAndroidStruct()
+	//text := p.quest_usecase.z()
 	//log.Println("get random note = ", text)
 	//
 	//note := &storage.Note{
@@ -67,6 +67,10 @@ func (p *Processor) saveNote(ctx context.Context, chatId int) error {
 }
 
 func (p *Processor) sendHelp(ctx context.Context, chatID int) error {
+	err := p.questionsUC.AutoMigration(ctx)
+	if err != nil {
+		return err
+	}
 	return p.tg.SendMessage(ctx, chatID, msgHelp)
 }
 

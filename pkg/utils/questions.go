@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -68,4 +69,51 @@ func getContentFromQuestionMd(data string) (string, error) {
 		return "", fmt.Errorf("Content not found")
 	}
 	return content, err
+}
+
+func parseUniqueNote(text string) (*UniqueNote, error) {
+	note := &UniqueNote{}
+
+	// Ищем тему
+	themeRegex := regexp.MustCompile(`Theme : (.*)`)
+	themeMatch := themeRegex.FindStringSubmatch(text)
+	if len(themeMatch) > 1 {
+		note.Theme = strings.TrimSpace(themeMatch[1])
+	}
+
+	// Ищем заголовок
+	titleRegex := regexp.MustCompile(`Title: (.*)`)
+	titleMatch := titleRegex.FindStringSubmatch(text)
+	if len(titleMatch) > 1 {
+		note.Title = strings.TrimSpace(titleMatch[1])
+	}
+
+	// Ищем содержимое между маркерами ### Content и ### External Link
+	contentRegex := regexp.MustCompile(`(?s)### Content\n(.*?)\n### External Link`)
+	contentMatch := contentRegex.FindStringSubmatch(text)
+	if len(contentMatch) > 1 {
+		// Удаляем пустые строки и блоки кода, которые не содержат текста
+		content := strings.TrimSpace(contentMatch[1])
+		content = regexp.MustCompile(`(?m)^\s*$\n?`).ReplaceAllString(content, "")
+		note.Content = content
+	} else {
+		// Если содержимое отсутствует, присваиваем пустую строку
+		note.Content = ""
+	}
+
+	// Ищем внешние ссылки
+	externalRegex := regexp.MustCompile(`### External Link\n\n(.*?)\n\n### Internal Link`)
+	externalMatch := externalRegex.FindStringSubmatch(text)
+	if len(externalMatch) > 1 {
+		note.External = strings.Split(strings.TrimSpace(externalMatch[1]), "\n")
+	}
+
+	// Ищем внутренние ссылки
+	internalRegex := regexp.MustCompile(`### Internal Link\n\n(.*?)\n\n`)
+	internalMatch := internalRegex.FindStringSubmatch(text)
+	if len(internalMatch) > 1 {
+		note.Internal = strings.Split(strings.TrimSpace(internalMatch[1]), "\n")
+	}
+
+	return note, nil
 }

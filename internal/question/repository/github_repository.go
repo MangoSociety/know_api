@@ -34,7 +34,7 @@ func NewQuestionsRepo(client *gh_client.Client, storage mongo.Storage) *Question
 func (q *QuestionsRepo) GetFileTree(context context.Context, path string) {
 	result, _, err := q.client.Client.Git.GetTree(context, q.client.Owner, q.client.Repo, q.client.Sha, true)
 	if err != nil {
-		fmt.Printf("Problem in getting repository information %v\n", err)
+		fmt.Printf("Problem in getting repos information %v\n", err)
 	}
 
 	data := filter(result.Entries, path)
@@ -196,7 +196,7 @@ func (q *QuestionsRepo) GetRandomQuestionStruct(path string) storage.Note {
 func (q *QuestionsRepo) GetInterviewQuestions(topic string) ([]string, error) {
 	result, _, err := q.client.Client.Git.GetTree(context.Background(), q.client.Owner, q.client.Repo, q.client.Sha, true)
 	if err != nil {
-		fmt.Printf("Problem in getting repository information %v\n", err)
+		fmt.Printf("Problem in getting repos information %v\n", err)
 		return nil, err
 	}
 	return filter(result.Entries, topic), nil

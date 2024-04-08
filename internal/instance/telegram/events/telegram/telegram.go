@@ -5,12 +5,14 @@ import (
 	"errors"
 	"know_api/clients/telegram"
 	"know_api/internal/instance/telegram/events"
+	"know_api/internal/questions"
 	e "know_api/pkg/error"
 )
 
 type Processor struct {
-	tg     *telegram.Client
-	offset int
+	tg          *telegram.Client
+	questionsUC questions.UseCase
+	offset      int
 }
 
 type Meta struct {
@@ -23,9 +25,10 @@ var (
 	ErrUnknownMetaType  = errors.New("unknown meta type")
 )
 
-func NewProcessor(client *telegram.Client) *Processor {
+func NewProcessor(client *telegram.Client, questionsUC questions.UseCase) *Processor {
 	return &Processor{
-		tg: client,
+		tg:          client,
+		questionsUC: questionsUC,
 	}
 }
 
