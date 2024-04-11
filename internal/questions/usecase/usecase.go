@@ -6,14 +6,14 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 	"know_api/internal/models"
 	"know_api/internal/questions"
+	"log"
 	"regexp"
 	"strings"
 	"sync"
 )
 
 type questionsUseCase struct {
-	ghRepo questions.GHRepository
-	mgRepo questions.MGRepository
+	repository questions.Repository
 }
 
 type UniqueNote struct {
@@ -31,64 +31,247 @@ type UniqueCategory struct {
 }
 
 func (q questionsUseCase) AutoMigration(ctx context.Context) error {
-	tree, err := q.ghRepo.GetTree(ctx)
+	tree, err := q.repository.GetTree(ctx)
 	if err != nil {
 		return err
 	}
 
 	var wg sync.WaitGroup
+	var processWg sync.WaitGroup // Для ожидания обработки категорий
 	successCount := 0
 	failureCount := 0
 	successChan := make(chan bool)
 	failureChan := make(chan bool)
+
+	categoryChan := make(chan string)
+	uniqueCategories := make(map[string]struct{})
+
+	processWg.Add(1)
+	go func() {
+		defer processWg.Done()
+		for category := range categoryChan {
+			uniqueCategories[category] = struct{}{}
+			log.Println("Added category:", category)
+		}
+	}()
 
 	for _, entry := range tree {
 		if *entry.Type == "blob" && strings.Contains(*entry.Path, "android/interview_questions") {
 			wg.Add(1)
 			go func(entry github.TreeEntry) {
 				defer wg.Done()
-				data, err := q.ghRepo.GetFileContent(ctx, *entry.Path)
+				data, err := q.repository.GetFileContent(ctx, *entry.Path)
 				if err != nil {
+					log.Println("Error get file content from github for path:", *entry.Path)
 					failureChan <- true
 					return
 				}
 				content := strings.ReplaceAll(data, "\n\n", "\n")
 				note, err := parseUniqueNote(content)
-				if note.Category.Title != "" && note.Theme != "" && note.Title != "" && note.Content != "" {
-					// TODO: Проверка категории и ее актуализация + сохранение в базу
+				if err != nil {
+					log.Println("Error parse file content:", err)
+					failureChan <- true
+					return
+				}
+				//log.Println("parse note:", note)
+				if note.Category.Title != "" && note.Theme.Title != "" && note.Title != "" && note.Content != "" {
+					//isExistTheme, err := q.repository.IsExistsTheme(ctx, note.Theme.Title)
+					//if err != nil {
+					//	failureChan <- true
+					//	return
+					//}
+					//if !isExistTheme {
+					//	_, err := q.repository.CreateTheme(ctx, &note.Theme)
+					//	if err != nil {
+					//		failureChan <- true
+					//		return
+					//	}
+					//}
+
+					categoryChan <- note.Category.Title
+
+					//isExistCategory, err := q.repository.IsExistsCategory(ctx, note.Category.Title)
+					//if err != nil {
+					//	failureChan <- true
+					//	return
+					//}
+					//if !isExistCategory {
+					//	_, err := q.repository.CreateCategory(ctx, &note.Category)
+					//	if err != nil {
+					//		failureChan <- true
+					//		return
+					//	}
+					//}
+
 					successChan <- true
 				} else {
+					log.Println("Error parse file content: not all fields are filled")
 					failureChan <- true
 				}
 			}(entry)
 		}
 	}
 
-	go func() {
-		wg.Wait()
-		close(successChan)
-		close(failureChan)
-	}()
-
 	for range successChan {
+		log.Println("Success ", successCount)
 		successCount++
 	}
 
 	for range failureChan {
+		log.Println("Failure ", failureCount)
 		failureCount++
 	}
 
+	wg.Wait()           // Ожидаем обработку всех записей
+	close(categoryChan) // Закрываем канал категорий после завершения всех горутин
+	processWg.Wait()    // Ожидаем завершения обработки уникальных категорий
+
+	// Выводим уникальные категории
+	log.Println("Уникальные категории:")
+	for item := range uniqueCategories {
+		log.Println("Category:", item)
+	}
+
+	close(successChan)
+	close(failureChan)
+	log.Println("Migration finished\nSuccess:", successCount, "\nFailure:", failureCount)
+
+	// Ваш код для закрытия остальных каналов и вывода итогов...
 	return nil
 }
 
-func parseUniqueNote(text string) (*UniqueNote, error) {
-	note := &UniqueNote{}
+//func (q questionsUseCase) AutoMigration(ctx context.Context) error {
+//	tree, err := q.repository.GetTree(ctx)
+//	if err != nil {
+//		return err
+//	}
+//
+//	var wg sync.WaitGroup
+//	successCount := 0
+//	failureCount := 0
+//	successChan := make(chan bool)
+//	failureChan := make(chan bool)
+//
+//	categoryChan := make(chan string)
+//
+//	uniqueCategories := make(map[string]struct{})
+//
+//	go func() {
+//		for category := range categoryChan {
+//			uniqueCategories[category] = struct{}{}
+//			log.Println("Added category:", category)
+//		}
+//	}()
+//
+//	for _, entry := range tree {
+//		if *entry.Type == "blob" && strings.Contains(*entry.Path, "android/interview_questions") {
+//			wg.Add(1)
+//			go func(entry github.TreeEntry) {
+//				defer wg.Done()
+//				data, err := q.repository.GetFileContent(ctx, *entry.Path)
+//				if err != nil {
+//					log.Println("Error get file content from github for path:", *entry.Path)
+//					failureChan <- true
+//					return
+//				}
+//				content := strings.ReplaceAll(data, "\n\n", "\n")
+//				note, err := parseUniqueNote(content)
+//				if err != nil {
+//					log.Println("Error parse file content:", err)
+//					failureChan <- true
+//					return
+//				}
+//				//log.Println("parse note:", note)
+//				if note.Category.Title != "" && note.Theme.Title != "" && note.Title != "" && note.Content != "" {
+//					//isExistTheme, err := q.repository.IsExistsTheme(ctx, note.Theme.Title)
+//					//if err != nil {
+//					//	failureChan <- true
+//					//	return
+//					//}
+//					//if !isExistTheme {
+//					//	_, err := q.repository.CreateTheme(ctx, &note.Theme)
+//					//	if err != nil {
+//					//		failureChan <- true
+//					//		return
+//					//	}
+//					//}
+//
+//					categoryChan <- note.Category.Title
+//
+//					//isExistCategory, err := q.repository.IsExistsCategory(ctx, note.Category.Title)
+//					//if err != nil {
+//					//	failureChan <- true
+//					//	return
+//					//}
+//					//if !isExistCategory {
+//					//	_, err := q.repository.CreateCategory(ctx, &note.Category)
+//					//	if err != nil {
+//					//		failureChan <- true
+//					//		return
+//					//	}
+//					//}
+//
+//					successChan <- true
+//				} else {
+//					log.Println("Error parse file content: not all fields are filled")
+//					failureChan <- true
+//				}
+//			}(entry)
+//		}
+//	}
+//
+//	go func() {
+//
+//	}()
+//
+//	for range successChan {
+//		log.Println("Success ", successCount)
+//		successCount++
+//	}
+//
+//	for range failureChan {
+//		log.Println("Failure ", failureCount)
+//		failureCount++
+//	}
+//
+//	wg.Wait()
+//	close(categoryChan)
+//
+//	// Выводим уникальные категории
+//	fmt.Println("Уникальные категории:")
+//	for item := range uniqueCategories {
+//		log.Println("Category:", item)
+//	}
+//	close(successChan)
+//	close(failureChan)
+//	log.Println("Migration finished\nSuccess:", successCount, "\nFailure:", failureCount)
+//
+//	return nil
+//}
+
+func parseUniqueNote(text string) (*models.Question, error) {
+	note := &models.Question{}
 
 	// Ищем тему
-	themeRegex := regexp.MustCompile(`Theme : (.*)`)
-	themeMatch := themeRegex.FindStringSubmatch(text)
-	if len(themeMatch) > 1 {
-		note.Theme = strings.TrimSpace(themeMatch[1])
+	categoryRegex := regexp.MustCompile(`Theme : (.*)`)
+	categoryMatch := categoryRegex.FindStringSubmatch(text)
+	if len(categoryMatch) > 1 {
+		note.Category = models.Category{
+			Title: strings.TrimSpace(categoryMatch[1]),
+		}
+	}
+
+	// Ищем тему
+	//themeRegex := regexp.MustCompile(`Sphere : (.*)`)
+	//themeMatch := themeRegex.FindStringSubmatch(text)
+	//if len(themeMatch) > 1 {
+	//	note.Theme = models.Theme{
+	//		Title: strings.TrimSpace(themeMatch[1]),
+	//	}
+	//}
+
+	note.Theme = models.Theme{
+		Title: "android",
 	}
 
 	// Ищем заголовок
@@ -111,20 +294,6 @@ func parseUniqueNote(text string) (*UniqueNote, error) {
 		note.Content = ""
 	}
 
-	// Ищем внешние ссылки
-	externalRegex := regexp.MustCompile(`### External Link\n\n(.*?)\n\n### Internal Link`)
-	externalMatch := externalRegex.FindStringSubmatch(text)
-	if len(externalMatch) > 1 {
-		note.External = strings.Split(strings.TrimSpace(externalMatch[1]), "\n")
-	}
-
-	// Ищем внутренние ссылки
-	internalRegex := regexp.MustCompile(`### Internal Link\n\n(.*?)\n\n`)
-	internalMatch := internalRegex.FindStringSubmatch(text)
-	if len(internalMatch) > 1 {
-		note.Internal = strings.Split(strings.TrimSpace(internalMatch[1]), "\n")
-	}
-
 	return note, nil
 }
 
@@ -143,9 +312,8 @@ func (q questionsUseCase) GetQuestionsByCategory(idCategory int) ([]*models.Ques
 	panic("implement me")
 }
 
-func NewQuestionsUseCase(ghRepo questions.GHRepository, mgRepo questions.MGRepository) questions.UseCase {
+func NewQuestionsUseCase(repository questions.Repository) questions.UseCase {
 	return &questionsUseCase{
-		ghRepo: ghRepo,
-		mgRepo: mgRepo,
+		repository: repository,
 	}
 }

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/google/go-github/github"
 	gh "know_api/clients/github"
-	"know_api/internal/questions"
+	"know_api/internal/repository/questions"
 	"log"
 )
 

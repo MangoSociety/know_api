@@ -8,7 +8,7 @@ import (
 	"know_api/config"
 	"know_api/internal/instance/telegram/consumer/event_consumer"
 	"know_api/internal/instance/telegram/events/telegram"
-	"know_api/internal/questions/repos"
+	repository2 "know_api/internal/questions/repository"
 	"know_api/internal/questions/usecase"
 	"know_api/pkg/db/mongo"
 	"log"
@@ -32,9 +32,10 @@ func main() {
 	storage := mongo.New(cfg.MongoConnect, 10*time.Second)
 	gh_client := gh_instance.NewGithubClient(cfg.Github.Token, cfg.Github.Owner, cfg.Github.Repo, cfg.Github.Sha)
 
-	ghRepo := repos.NewQuestionsGHRepository(*gh_client)
-	mgRepo := repos.NewQuestionsMGRepository(&storage)
-	questionsUseCase := usecase.NewQuestionsUseCase(ghRepo, mgRepo)
+	//ghRepo := repos2.NewQuestionsGHRepository(*gh_client)
+	//mgRepo := repos2.NewQuestionsMGRepository(&storage)
+	repository := repository2.NewQuestionsRepository(*gh_client, storage)
+	questionsUseCase := usecase.NewQuestionsUseCase(repository)
 
 	eventsProcessor := telegram.NewProcessor(
 		tg_client.NewTelegramClient("api.telegram.org", cfg.TgToken, bot),

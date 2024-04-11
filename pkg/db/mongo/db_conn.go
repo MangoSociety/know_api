@@ -11,8 +11,10 @@ import (
 )
 
 type Storage struct {
-	pages Pages
-	notes Notes
+	Pages    Pages
+	Notes    Notes
+	Category Category
+	Theme    Theme
 }
 
 type Pages struct {
@@ -20,6 +22,14 @@ type Pages struct {
 }
 
 type Notes struct {
+	*mongo.Collection
+}
+
+type Category struct {
+	*mongo.Collection
+}
+
+type Theme struct {
 	*mongo.Collection
 }
 
@@ -39,15 +49,25 @@ func New(connectString string, connectTimeout time.Duration) Storage {
 	}
 
 	pages := Pages{
-		Collection: client.Database("read-adviser").Collection("pages"),
+		Collection: client.Database("memory-base").Collection("pages"),
 	}
 
 	notes := Notes{
-		Collection: client.Database("read-adviser").Collection("notes"),
+		Collection: client.Database("memory-base").Collection("notes"),
+	}
+
+	category := Category{
+		Collection: client.Database("memory-base").Collection("category"),
+	}
+
+	theme := Theme{
+		Collection: client.Database("memory-base").Collection("theme"),
 	}
 
 	return Storage{
-		pages: pages,
-		notes: notes,
+		Pages:    pages,
+		Notes:    notes,
+		Category: category,
+		Theme:    theme,
 	}
 }

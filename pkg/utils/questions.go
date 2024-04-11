@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"know_api/internal/models"
 	"regexp"
 	"strings"
 )
@@ -71,14 +72,16 @@ func getContentFromQuestionMd(data string) (string, error) {
 	return content, err
 }
 
-func parseUniqueNote(text string) (*UniqueNote, error) {
-	note := &UniqueNote{}
+func parseUniqueNote(text string) (*models.Question, error) {
+	note := &models.Question{}
 
-	// Ищем тему
-	themeRegex := regexp.MustCompile(`Theme : (.*)`)
-	themeMatch := themeRegex.FindStringSubmatch(text)
-	if len(themeMatch) > 1 {
-		note.Theme = strings.TrimSpace(themeMatch[1])
+	// Ищем категорию
+	categoryRegex := regexp.MustCompile(`Theme : (.*)`)
+	categoryMatch := categoryRegex.FindStringSubmatch(text)
+	if len(categoryMatch) > 1 {
+		note.Theme = models.Theme{
+			Title: strings.TrimSpace(categoryMatch[1]),
+		}
 	}
 
 	// Ищем заголовок
@@ -99,20 +102,6 @@ func parseUniqueNote(text string) (*UniqueNote, error) {
 	} else {
 		// Если содержимое отсутствует, присваиваем пустую строку
 		note.Content = ""
-	}
-
-	// Ищем внешние ссылки
-	externalRegex := regexp.MustCompile(`### External Link\n\n(.*?)\n\n### Internal Link`)
-	externalMatch := externalRegex.FindStringSubmatch(text)
-	if len(externalMatch) > 1 {
-		note.External = strings.Split(strings.TrimSpace(externalMatch[1]), "\n")
-	}
-
-	// Ищем внутренние ссылки
-	internalRegex := regexp.MustCompile(`### Internal Link\n\n(.*?)\n\n`)
-	internalMatch := internalRegex.FindStringSubmatch(text)
-	if len(internalMatch) > 1 {
-		note.Internal = strings.Split(strings.TrimSpace(internalMatch[1]), "\n")
 	}
 
 	return note, nil
