@@ -11,10 +11,11 @@ import (
 
 type CategoryRepository interface {
 	GetAll() ([]domain.Category, error)
-	Create(category domain.Category) error
+	Create(category *domain.Category, prevCategory string) error
 	Update(category domain.Category) error
 	Delete(id primitive.ObjectID) error
 	GetByName(name string) (*domain.Category, error)
+	GetCategoriesByParentName(parentName string) ([]*domain.Category, error)
 }
 
 type categoryRepository struct {
@@ -41,7 +42,14 @@ func (r *categoryRepository) GetAll() ([]domain.Category, error) {
 	return categories, nil
 }
 
-func (r *categoryRepository) Create(category domain.Category) error {
+func (r *categoryRepository) Create(category *domain.Category, prevCategory string) error {
+	if prevCategory != "" {
+		prevCat, err := r.GetByName(prevCategory)
+		if err != nil {
+			return err
+		}
+		category.ParentID = prevCat.ID
+	}
 	_, err := r.collection.InsertOne(context.Background(), category)
 	return err
 }
@@ -66,9 +74,35 @@ func (r *categoryRepository) GetByName(name string) (*domain.Category, error) {
 	err := r.collection.FindOne(context.Background(), bson.M{"name": name}).Decode(&category)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, nil
+			return nil, err
 		}
 		return nil, err
 	}
 	return &category, nil
+}
+
+func (r *categoryRepository) GetCategoriesByParentName(parentName string) ([]*domain.Category, error) {
+	var filter bson.M
+	if parentName == "" {
+		filter = bson.M{"parent_id": primitive.NilObjectID}
+	} else {
+		parentCategory, err := r.GetByName(parentName)
+		if err != nil {
+			if err == mongo.ErrNoDocuments {
+				return []*domain.Category{}, nil
+			}
+			return nil, err
+		}
+		filter = bson.M{"parent_id": parentCategory.ID}
+	}
+
+	var categories []*domain.Category
+	cursor, err := r.collection.Find(context.Background(), filter)
+	if err != nil {
+		return nil, err
+	}
+	if err = cursor.All(context.Background(), &categories); err != nil {
+		return nil, err
+	}
+	return categories, nil
 }

@@ -8,7 +8,8 @@ import (
 
 type CategoryService interface {
 	GetCategories() ([]domain.Category, error)
-	CreateCategory(category domain.Category) error
+	GetCategoriesTree(parentName string) ([]*domain.Category, error)
+	CreateCategory(category *domain.Category, prevCategory string) error
 	UpdateCategory(category domain.Category) error
 	DeleteCategory(id primitive.ObjectID) error
 }
@@ -25,8 +26,12 @@ func (s *categoryService) GetCategories() ([]domain.Category, error) {
 	return s.repo.GetAll()
 }
 
-func (s *categoryService) CreateCategory(category domain.Category) error {
-	return s.repo.Create(category)
+func (s *categoryService) GetCategoriesTree(parentName string) ([]*domain.Category, error) {
+	return s.repo.GetCategoriesByParentName(parentName)
+}
+
+func (s *categoryService) CreateCategory(category *domain.Category, prevCategory string) error {
+	return s.repo.Create(category, prevCategory)
 }
 
 func (s *categoryService) UpdateCategory(category domain.Category) error {

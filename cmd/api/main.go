@@ -60,6 +60,7 @@ func main() {
 	router.DELETE("/notes/:id", noteHandler.DeleteNote)
 
 	router.GET("/categories", categoryHandler.GetCategories)
+	router.POST("/categories/tree", categoryHandler.GetCategoriesTree)
 	router.POST("/categories", categoryHandler.CreateCategory)
 	router.PUT("/categories/:id", categoryHandler.UpdateCategory)
 	router.DELETE("/categories/:id", categoryHandler.DeleteCategory)

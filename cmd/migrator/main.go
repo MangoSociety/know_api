@@ -17,7 +17,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	gitHubRepo := repository.NewGitHubRepository("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", "MangoSociety", "repo_base", "refs/heads/main", "android_base")
+	gitHubRepo := repository.NewGitHubRepository(
+		"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",
+		"MangoSociety",
+		"repo_base",
+		"refs/heads/main",
+		"android_base")
 	noteRepo := notesRepo.NewNoteRepository(dbClient)
 	categoryRepo := categoriesRepo.NewCategoryRepository(dbClient)
 	sphereRepo := spheresRepo.NewSphereRepository(dbClient)

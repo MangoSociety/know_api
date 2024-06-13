@@ -25,6 +25,16 @@ func (h *CategoryHandler) GetCategories(c *gin.Context) {
 	c.JSON(http.StatusOK, categories)
 }
 
+func (h *CategoryHandler) GetCategoriesTree(c *gin.Context) {
+	parentName := c.Query("parentName")
+	categories, err := h.categoryService.GetCategoriesTree(parentName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, categories)
+}
+
 func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 	var category domain.Category
 	if err := c.ShouldBindJSON(&category); err != nil {
@@ -32,7 +42,8 @@ func (h *CategoryHandler) CreateCategory(c *gin.Context) {
 		return
 	}
 	category.ID = primitive.NewObjectID()
-	if err := h.categoryService.CreateCategory(category); err != nil {
+	// TODO: в дальнейшем нужно будет передавать prevCategory
+	if err := h.categoryService.CreateCategory(&category, ""); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

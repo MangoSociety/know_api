@@ -100,6 +100,7 @@ func (s *migratorService) convertToDomainModel(tempNote models.Note) (notesDomai
 	}
 
 	// Получаем идентификаторы категорий или создаем новые
+	prevTheme := ""
 	for _, theme := range tempNote.Theme {
 		category, err := s.categoryRepo.GetByName(theme)
 		if err != nil {
@@ -111,13 +112,14 @@ func (s *migratorService) convertToDomainModel(tempNote models.Note) (notesDomai
 				Name:     theme,
 				SphereID: note.SphereID,
 			}
-			if err := s.categoryRepo.Create(newCategory); err != nil {
+			if err := s.categoryRepo.Create(&newCategory, prevTheme); err != nil {
 				return note, err
 			}
 			note.CategoryIDs = append(note.CategoryIDs, newCategory.ID)
 		} else {
 			note.CategoryIDs = append(note.CategoryIDs, category.ID)
 		}
+		prevTheme = theme
 	}
 
 	return note, nil

@@ -1,7 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	tgClient "github.com/MangoSociety/know_api/clients/telegram"
+	"github.com/MangoSociety/know_api/config"
+	"github.com/MangoSociety/know_api/internal/telegram/consumer/event_consumer"
+	"github.com/MangoSociety/know_api/internal/telegram/events/telegram"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/labstack/gommon/log"
 	"github.com/russross/blackfriday/v2"
 	"strings"
 	"time"
@@ -43,6 +50,24 @@ import (
 //if err := consumer.Start(ctx); err != nil {
 //	log.Fatal("service is stopped", err)
 //}
+
+func main() {
+	cfg := config.MustLoad()
+	bot, err := tgbotapi.NewBotAPI(cfg.TgToken)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	eventsProcessor := telegram.NewProcessor(
+		tgClient.NewTelegramClient("api.telegram.org", cfg.TgToken, bot),
+	)
+	consumer := event_consumer.NewConsumer(eventsProcessor, eventsProcessor, 100) //  NewConsumer(eventsProcessor, eventsProcessor, batchSize)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	if err := consumer.Start(ctx); err != nil {
+		log.Fatal("service is stopped", err)
+	}
+}
 
 const testString = `#готово
 
@@ -107,10 +132,10 @@ type MarkdownData struct {
 	Date         time.Time `bson:"date"`
 }
 
-func main() {
-	data, _ := parseString(testString)
-	fmt.Println(data)
-}
+//func main() {
+//	data, _ := parseString(testString)
+//	fmt.Println(data)
+//}
 
 // parseString разбирает строку Markdown и возвращает структуру MarkdownData
 func parseString(content string) (*MarkdownData, error) {
