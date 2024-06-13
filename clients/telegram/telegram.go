@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"io"
-	e "know_api/pkg/error"
+	e "know_api/pkg_1/error"
 	"net/http"
 	"net/url"
 	"path"

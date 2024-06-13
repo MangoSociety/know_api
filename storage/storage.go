@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	e "know_api/pkg/error"
+	e "know_api/pkg_1/error"
 )
 
 type Storage interface {

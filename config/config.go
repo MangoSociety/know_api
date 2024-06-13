@@ -92,7 +92,7 @@ const (
 	gh_sha        = "f4fbbd247b70039de1b6c6a43f419a22e88e8856"
 	gh_token      = "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"
 	tg_token      = "6927936576:AAEMzBBo0Bs6T3Nnq8AN1DfCvl5jzFBKoks"
-	mongo_connect = "mongodb+srv://forevermenty25:k9zPoWBGI3PQT4Gz@cluster0.p8mq4lx.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+	mongo_connect = "mongodb://localhost:27017"
 )
 
 // Load config file from given path

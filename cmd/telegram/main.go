@@ -1,17 +1,9 @@
 package main
 
 import (
-	"context"
-	tg_bot_api "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	gh_instance "know_api/clients/github"
-	tg_client "know_api/clients/telegram"
-	"know_api/config"
-	"know_api/internal/instance/telegram/consumer/event_consumer"
-	"know_api/internal/instance/telegram/events/telegram"
-	repository2 "know_api/internal/questions/repository"
-	"know_api/internal/questions/usecase"
-	"know_api/pkg/db/mongo"
-	"log"
+	"fmt"
+	"github.com/russross/blackfriday/v2"
+	"strings"
 	"time"
 )
 
@@ -20,35 +12,213 @@ import (
 - авто синк с гитхабом
 *
 */
+
+//cfg := config.MustLoad()
+//
+//bot, err := tg_bot_api.NewBotAPI(cfg.TgToken)
+//if err != nil {
+//	log.Panic(err)
+//}
+//bot.Debug = true
+//
+//storage := mongo.New(cfg.MongoConnect, 10*time.Second)
+//gh_client := gh_instance.NewGithubClient(cfg.Github.Token, cfg.Github.Owner, cfg.Github.Repo, cfg.Github.Sha)
+//
+////ghRepo := repos2.NewQuestionsGHRepository(*gh_client)
+////mgRepo := repos2.NewQuestionsMGRepository(&storage)
+//repository := repository2.NewQuestionsRepository(*gh_client, storage)
+//questionsUseCase := usecase.NewQuestionsUseCase(repository)
+//
+//eventsProcessor := telegram.NewProcessor(
+//	tg_client.NewTelegramClient("api.telegram.org", cfg.TgToken, bot),
+//	questionsUseCase,
+//)
+//
+//log.Print("telegram processor started")
+//
+//consumer := event_consumer.NewConsumer(eventsProcessor, eventsProcessor, 100) //  NewConsumer(eventsProcessor, eventsProcessor, batchSize)
+//
+//ctx, cancel := context.WithCancel(context.Background())
+//defer cancel()
+//if err := consumer.Start(ctx); err != nil {
+//	log.Fatal("service is stopped", err)
+//}
+
+const testString = `#готово
+
+Theme : #common
+Title: Расскажи что такое SharedPreferences Какие данные можно хранить Какие плюсы и минусы
+Sphere: #android
+
+### Content
+
+### Какие данные можно хранить
+
+С SharedPreferences, вы можете хранить следующие типы данных:
+
+- boolean
+- float
+- int
+- long
+- String
+- Set<String> (используется для хранения коллекций строк, например, списка значений)
+
+Эти типы данных покрывают большинство нужд приложения в сохранении простых конфигурационных параметров и пользовательских предпочтений.
+
+### Плюсы SharedPreferences
+
+1. **Простота использования**: Интерфейс SharedPreferences прост и интуитивно понятен, что делает его легким в использовании для хранения и извлечения простых данных.
+2. **Легкость интеграции**: Он хорошо интегрирован в Android SDK, предоставляя прямой и эффективный способ сохранения легковесных данных.
+3. **Быстрый доступ**: Доступ к данным, хранящимся в SharedPreferences, осуществляется быстро, что делает его подходящим для хранения данных, необходимых при старте приложения.
+4. **Поддержка асинхронного сохранения**: С API 9 (Android 2.3, Gingerbread) и выше, SharedPreferences предлагает метод apply(), который асинхронно сохраняет изменения, минимизируя задержки UI.
+
+### Минусы SharedPreferences
+
+1. **Ограниченный объем и типы данных**: SharedPreferences подходит только для примитивных типов данных и не предназначен для хранения сложных объектов или больших объемов данных.
+2. **Безопасность**: Данные, сохраненные в SharedPreferences, хранятся в виде обычных файлов XML без шифрования, что делает их уязвимыми для атак, если устройство скомпрометировано.
+3. **Отсутствие поддержки структурированных данных**: SharedPreferences не подходит для хранения структурированных данных или реализации сложных иерархий настроек.
+4. **Проблемы с многопоточностью**: При неправильном использовании может возникнуть состояние гонки или другие проблемы с многопоточностью, особенно если одновременно производится чтение и запись из разных потоков.
+
+SharedPreferences является удобным инструментом для хранения небольших объемов данных, таких как настройки пользователя или простые флаги состояния. Однако для более сложных или объемных данных следует рассмотреть другие варианты хранения данных, такие как базы данных SQLite или хранилище на основе файлов с использованием внутренней или внешней памяти.
+
+### External Link
+
+-
+
+### Internal Link
+
+- ....
+`
+
+// Section представляет раздел внутри контента Markdown
+type Section struct {
+	Title   string `bson:"title"`
+	Content string `bson:"content"`
+}
+
+// MarkdownData структура для хранения данных из Markdown
+type MarkdownData struct {
+	Theme        string    `bson:"theme"`
+	Title        string    `bson:"title"`
+	Sphere       string    `bson:"sphere"`
+	Sections     []Section `bson:"sections"`
+	ExternalLink string    `bson:"external_link"`
+	InternalLink string    `bson:"internal_link"`
+	Date         time.Time `bson:"date"`
+}
+
 func main() {
-	cfg := config.MustLoad()
+	data, _ := parseString(testString)
+	fmt.Println(data)
+}
 
-	bot, err := tg_bot_api.NewBotAPI(cfg.TgToken)
-	if err != nil {
-		log.Panic(err)
+// parseString разбирает строку Markdown и возвращает структуру MarkdownData
+func parseString(content string) (*MarkdownData, error) {
+	output := blackfriday.Run([]byte(content))
+	sections, theme, title, sphere, externalLink, internalLink := parseHTMLContent(string(output))
+
+	return &MarkdownData{
+		Theme:        theme,
+		Title:        title,
+		Sphere:       sphere,
+		Sections:     sections,
+		ExternalLink: externalLink,
+		InternalLink: internalLink,
+		Date:         time.Now(),
+	}, nil
+}
+
+// parseHTMLContent разбирает HTML-содержимое, сгенерированное из Markdown, и возвращает секции
+func parseHTMLContent(htmlContent string) ([]Section, string, string, string, string, string) {
+	var sections []Section
+	var currentSection *Section
+	var theme, title, sphere, externalLink, internalLink string
+
+	lines := strings.Split(htmlContent, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, "<h1>") && strings.Contains(line, "</h1>") {
+			theme = extractContent(line, "h1")
+		} else if strings.Contains(line, "<h2>") && strings.Contains(line, "</h2>") {
+			title = extractContent(line, "h2")
+		} else if strings.Contains(line, "<h3>") && strings.Contains(line, "</h3>") {
+			sphere = extractContent(line, "h3")
+		} else if strings.Contains(line, "<h4>") && strings.Contains(line, "</h4>") {
+			if currentSection != nil {
+				sections = append(sections, *currentSection)
+			}
+			currentSection = &Section{
+				Title:   extractContent(line, "h4"),
+				Content: "",
+			}
+		} else if strings.Contains(line, "<ul>") && strings.Contains(line, "</ul>") {
+			if currentSection != nil {
+				currentSection.Content += formatList(line, "ul") + "\n"
+			}
+		} else if strings.Contains(line, "<ol>") && strings.Contains(line, "</ol>") {
+			if currentSection != nil {
+				currentSection.Content += formatList(line, "ol") + "\n"
+			}
+		} else if strings.Contains(line, "<strong>") && strings.Contains(line, "</strong>") {
+			if currentSection != nil {
+				currentSection.Content += formatBoldText(line) + "\n"
+			}
+		} else if strings.Contains(line, "<em>") && strings.Contains(line, "</em>") {
+			if currentSection != nil {
+				currentSection.Content += formatItalicText(line) + "\n"
+			}
+		} else if strings.Contains(line, "<a href=") {
+			if strings.Contains(line, "External Link") {
+				externalLink = extractLink(line)
+			} else if strings.Contains(line, "Internal Link") {
+				internalLink = extractLink(line)
+			}
+		} else {
+			if currentSection != nil {
+				currentSection.Content += line + "\n"
+			}
+		}
 	}
-	bot.Debug = true
 
-	storage := mongo.New(cfg.MongoConnect, 10*time.Second)
-	gh_client := gh_instance.NewGithubClient(cfg.Github.Token, cfg.Github.Owner, cfg.Github.Repo, cfg.Github.Sha)
-
-	//ghRepo := repos2.NewQuestionsGHRepository(*gh_client)
-	//mgRepo := repos2.NewQuestionsMGRepository(&storage)
-	repository := repository2.NewQuestionsRepository(*gh_client, storage)
-	questionsUseCase := usecase.NewQuestionsUseCase(repository)
-
-	eventsProcessor := telegram.NewProcessor(
-		tg_client.NewTelegramClient("api.telegram.org", cfg.TgToken, bot),
-		questionsUseCase,
-	)
-
-	log.Print("telegram processor started")
-
-	consumer := event_consumer.NewConsumer(eventsProcessor, eventsProcessor, 100) //  NewConsumer(eventsProcessor, eventsProcessor, batchSize)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	if err := consumer.Start(ctx); err != nil {
-		log.Fatal("service is stopped", err)
+	if currentSection != nil {
+		sections = append(sections, *currentSection)
 	}
+
+	return sections, theme, title, sphere, externalLink, internalLink
+}
+
+// extractContent извлекает содержимое из HTML-тега
+func extractContent(line, tag string) string {
+	openTag := fmt.Sprintf("<%s>", tag)
+	closeTag := fmt.Sprintf("</%s>", tag)
+	return strings.TrimSpace(strings.ReplaceAll(strings.ReplaceAll(line, openTag, ""), closeTag, ""))
+}
+
+// formatList форматирует список в читабельный вид
+func formatList(line, tag string) string {
+	openTag := fmt.Sprintf("<%s>", tag)
+	closeTag := fmt.Sprintf("</%s>", tag)
+	itemOpenTag := "<li>"
+	itemCloseTag := "</li>"
+	formatted := strings.ReplaceAll(line, openTag, "")
+	formatted = strings.ReplaceAll(formatted, closeTag, "")
+	formatted = strings.ReplaceAll(formatted, itemOpenTag, "- ")
+	formatted = strings.ReplaceAll(formatted, itemCloseTag, "\n")
+	return formatted
+}
+
+// formatBoldText форматирует жирный текст
+func formatBoldText(line string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(line, "<strong>", "**"), "</strong>", "**")
+}
+
+// formatItalicText форматирует курсивный текст
+func formatItalicText(line string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(line, "<em>", "*"), "</em>", "*")
+}
+
+// extractLink извлекает ссылку из HTML-тега <a>
+func extractLink(line string) string {
+	start := strings.Index(line, "href=") + len("href=") + 1
+	end := strings.Index(line[start:], "\"") + start
+	return strings.TrimSpace(line[start:end])
 }
