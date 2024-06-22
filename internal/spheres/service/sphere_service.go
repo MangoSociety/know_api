@@ -11,6 +11,7 @@ type SphereService interface {
 	CreateSphere(sphere domain.Sphere) error
 	UpdateSphere(sphere domain.Sphere) error
 	DeleteSphere(id primitive.ObjectID) error
+	GetById(id string) (*domain.Sphere, error)
 }
 
 type sphereService struct {
@@ -35,4 +36,8 @@ func (s *sphereService) UpdateSphere(sphere domain.Sphere) error {
 
 func (s *sphereService) DeleteSphere(id primitive.ObjectID) error {
 	return s.repo.Delete(id)
+}
+
+func (s *sphereService) GetById(id string) (*domain.Sphere, error) {
+	return s.repo.GetById(id)
 }

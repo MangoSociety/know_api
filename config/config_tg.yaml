@@ -1,0 +1,5 @@
+mongo:
+  connect: mongodb://localhost:27017
+
+telegram:
+  token: 6927936576:AAEMzBBo0Bs6T3Nnq8AN1DfCvl5jzFBKoks

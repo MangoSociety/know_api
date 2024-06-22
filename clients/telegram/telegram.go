@@ -6,6 +6,7 @@ import (
 	e "github.com/MangoSociety/know_api/pkg/error"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"path"
@@ -48,6 +49,7 @@ func (c *Client) Updates(ctx context.Context, offset int, limit int) (updates []
 	q.Add("limit", strconv.Itoa(limit))
 
 	data, err := c.doRequest(ctx, getUpdatesMethod, q)
+	log.Println(data)
 	if err != nil {
 		return nil, err
 	}
@@ -59,6 +61,31 @@ func (c *Client) Updates(ctx context.Context, offset int, limit int) (updates []
 	}
 
 	return res.Result, nil
+}
+
+//func (c *Client) SendButton(chatID int, text string) error {
+//	msg := tgbotapi.NewMessage(int64(chatID), "Ваше сообщение: "+text)
+//	button := tgbotapi.NewInlineKeyboardButtonData("Нажми меня", "callback_data")
+//	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+//		tgbotapi.NewInlineKeyboardRow(button),
+//	)
+//	msg.ReplyMarkup = keyboard
+//	_, err := c.bot.Send(msg)
+//	return err
+//}
+
+func (c *Client) SendButton(chatID int64, text string, buttons [][]tgbotapi.InlineKeyboardButton) error {
+	msg := tgbotapi.NewMessage(chatID, text)
+	msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(buttons...)
+
+	_, err := c.bot.Send(msg)
+	return err
+}
+
+func (c *Client) AnswerCallbackQuery(callbackQueryID string, text string) error {
+	callback := tgbotapi.NewCallback(callbackQueryID, text)
+	_, err := c.bot.Request(callback)
+	return err
 }
 
 func (c *Client) SendMessage(ctx context.Context, chatID int, text string) error {

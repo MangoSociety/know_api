@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"strings"
 )
 
 type SphereRepository interface {
@@ -15,6 +16,7 @@ type SphereRepository interface {
 	Update(sphere domain.Sphere) error
 	Delete(id primitive.ObjectID) error
 	GetByName(name string) (*domain.Sphere, error)
+	GetById(id string) (*domain.Sphere, error)
 }
 
 type sphereRepository struct {
@@ -64,6 +66,24 @@ func (r *sphereRepository) Delete(id primitive.ObjectID) error {
 func (r *sphereRepository) GetByName(name string) (*domain.Sphere, error) {
 	var sphere domain.Sphere
 	err := r.collection.FindOne(context.Background(), bson.M{"name": name}).Decode(&sphere)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &sphere, nil
+}
+
+func (r *sphereRepository) GetById(id string) (*domain.Sphere, error) {
+	objectIDStr := strings.TrimPrefix(id, `ObjectID("`)
+	objectIDStr = strings.TrimSuffix(objectIDStr, `")`)
+	var sphere domain.Sphere
+	objID, err := primitive.ObjectIDFromHex(objectIDStr)
+	if err != nil {
+		return nil, err
+	}
+	err = r.collection.FindOne(context.Background(), bson.M{"_id": objID}).Decode(&sphere)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil

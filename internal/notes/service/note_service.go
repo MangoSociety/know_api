@@ -11,6 +11,8 @@ type NoteService interface {
 	CreateNote(note domain.Note) error
 	UpdateNote(note domain.Note) error
 	DeleteNote(id primitive.ObjectID) error
+	GetRandomNoteByCategory(categoryIDs []primitive.ObjectID) (*domain.Note, error)
+	GetByHex(hexID string) (*domain.Note, error)
 }
 
 type noteService struct {
@@ -35,4 +37,12 @@ func (s *noteService) UpdateNote(note domain.Note) error {
 
 func (s *noteService) DeleteNote(id primitive.ObjectID) error {
 	return s.repo.Delete(id)
+}
+
+func (s *noteService) GetRandomNoteByCategory(categoryIDs []primitive.ObjectID) (*domain.Note, error) {
+	return s.repo.GetRandomNoteByCategory(categoryIDs)
+}
+
+func (s *noteService) GetByHex(hexID string) (*domain.Note, error) {
+	return s.repo.GetByHex(hexID)
 }

@@ -16,6 +16,8 @@ type CategoryRepository interface {
 	Delete(id primitive.ObjectID) error
 	GetByName(name string) (*domain.Category, error)
 	GetCategoriesByParentName(parentName string) ([]*domain.Category, error)
+	GetCategoriesByParentID(parentID string) ([]*domain.Category, error)
+	//GetTitleCategoryByID(id string) (string, error)
 }
 
 type categoryRepository struct {
@@ -96,6 +98,19 @@ func (r *categoryRepository) GetCategoriesByParentName(parentName string) ([]*do
 		filter = bson.M{"parent_id": parentCategory.ID}
 	}
 
+	var categories []*domain.Category
+	cursor, err := r.collection.Find(context.Background(), filter)
+	if err != nil {
+		return nil, err
+	}
+	if err = cursor.All(context.Background(), &categories); err != nil {
+		return nil, err
+	}
+	return categories, nil
+}
+
+func (r *categoryRepository) GetCategoriesByParentID(parentID string) ([]*domain.Category, error) {
+	filter := bson.M{"parent_id": parentID}
 	var categories []*domain.Category
 	cursor, err := r.collection.Find(context.Background(), filter)
 	if err != nil {

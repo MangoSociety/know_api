@@ -12,6 +12,8 @@ type CategoryService interface {
 	CreateCategory(category *domain.Category, prevCategory string) error
 	UpdateCategory(category domain.Category) error
 	DeleteCategory(id primitive.ObjectID) error
+	GetCategoriesByParentID(parentID string) ([]*domain.Category, error)
+	GetCategoriesByName(name string) (*domain.Category, error)
 }
 
 type categoryService struct {
@@ -40,4 +42,12 @@ func (s *categoryService) UpdateCategory(category domain.Category) error {
 
 func (s *categoryService) DeleteCategory(id primitive.ObjectID) error {
 	return s.repo.Delete(id)
+}
+
+func (s *categoryService) GetCategoriesByParentID(parentID string) ([]*domain.Category, error) {
+	return s.repo.GetCategoriesByParentID(parentID)
+}
+
+func (s *categoryService) GetCategoriesByName(name string) (*domain.Category, error) {
+	return s.repo.GetByName(name)
 }

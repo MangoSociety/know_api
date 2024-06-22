@@ -4,9 +4,20 @@ import (
 	"context"
 	"fmt"
 	tgClient "github.com/MangoSociety/know_api/clients/telegram"
-	"github.com/MangoSociety/know_api/config"
+	categoriesRepo "github.com/MangoSociety/know_api/internal/categories/repository"
+	categoriesService "github.com/MangoSociety/know_api/internal/categories/service"
+	configReal "github.com/MangoSociety/know_api/internal/config"
+	repository2 "github.com/MangoSociety/know_api/internal/notes/repository"
+	service2 "github.com/MangoSociety/know_api/internal/notes/service"
+	spheresRepo "github.com/MangoSociety/know_api/internal/spheres/repository"
+	spheresService "github.com/MangoSociety/know_api/internal/spheres/service"
+	statitsticsRepository "github.com/MangoSociety/know_api/internal/statistics/repository"
+	statisticsService "github.com/MangoSociety/know_api/internal/statistics/service"
 	"github.com/MangoSociety/know_api/internal/telegram/consumer/event_consumer"
 	"github.com/MangoSociety/know_api/internal/telegram/events/telegram"
+	"github.com/MangoSociety/know_api/internal/user/repository"
+	"github.com/MangoSociety/know_api/internal/user/service"
+	"github.com/MangoSociety/know_api/pkg/mongodb"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/labstack/gommon/log"
 	"github.com/russross/blackfriday/v2"
@@ -52,14 +63,40 @@ import (
 //}
 
 func main() {
-	cfg := config.MustLoad()
-	bot, err := tgbotapi.NewBotAPI(cfg.TgToken)
+	cfg := configReal.MustLoadConfig()
+	log.Printf("Config: %s", cfg.Mongo.Connect)
+	bot, err := tgbotapi.NewBotAPI(cfg.Telegram.Token)
 	if err != nil {
 		log.Panic(err)
 	}
 
+	// Инициализация MongoDB
+	dbClient, err := mongodb.NewClient(cfg.Mongo.Connect)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Инициализация репозиториев
+	noteRepo := repository2.NewNoteRepository(dbClient)
+	categoryRepo := categoriesRepo.NewCategoryRepository(dbClient)
+	sphereRepo := spheresRepo.NewSphereRepository(dbClient)
+	userSelectionRepo := repository.NewUserSelectionRepository(dbClient)
+	statisticsRepo := statitsticsRepository.NewStatisticsRepository(dbClient)
+
+	// Инициализация сервисов
+	noteService := service2.NewNoteService(noteRepo)
+	categoryService := categoriesService.NewCategoryService(categoryRepo)
+	sphereService := spheresService.NewSphereService(sphereRepo)
+	userSelectionService := service.NewUserSelectionService(userSelectionRepo)
+	statService := statisticsService.NewStatisticsService(statisticsRepo)
+
 	eventsProcessor := telegram.NewProcessor(
-		tgClient.NewTelegramClient("api.telegram.org", cfg.TgToken, bot),
+		tgClient.NewTelegramClient("api.telegram.org", cfg.Telegram.Token, bot),
+		noteService,
+		categoryService,
+		sphereService,
+		userSelectionService,
+		statService,
 	)
 	consumer := event_consumer.NewConsumer(eventsProcessor, eventsProcessor, 100) //  NewConsumer(eventsProcessor, eventsProcessor, batchSize)
 	ctx, cancel := context.WithCancel(context.Background())
